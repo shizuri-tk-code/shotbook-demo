@@ -1,0 +1,4 @@
+# this folder is its own git repo (GitHub Pages); keep line endings as written
+* text=auto eol=lf
+*.png binary
+*.jpg binary
