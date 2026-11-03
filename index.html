@@ -417,6 +417,8 @@ body{position:relative;background:var(--bg);font-weight:300;letter-spacing:.01em
 .bgfx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:linear-gradient(170deg,var(--bg) 0%,var(--bg2) 100%)}
 .bgfx .bg-img{position:absolute;inset:0;background-image:var(--bg-glow),var(--bg-top),var(--bg-right),var(--bg-bl),var(--bg-base);background-position:0 0,top center,right top 4vh,left bottom,center;background-size:100% 100%,min(100%,1900px) auto,clamp(150px,15vw,290px) auto,clamp(230px,24vw,460px) auto,cover;background-repeat:no-repeat}
 .bgfx::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--veil0) 0%,var(--veil1) 55%,var(--veil2) 100%)}
+/* sections parked for a later version (the stamp tab): kept in the page, never shown */
+section.step.off{display:none!important}
 /* first-run notice */
 dialog.notice{position:fixed;inset:0;margin:auto;max-width:560px;width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto;padding:30px 30px 22px;border:1px solid var(--glass-border);border-radius:22px;background:var(--modal-bg);color:var(--fg);box-shadow:0 40px 80px -30px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
 dialog.notice::backdrop{background:rgba(22,17,14,.38);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
@@ -779,7 +781,7 @@ footer.credit b{font-family:var(--font-logo);font-size:22px;color:var(--ink);let
   <div id="review" class="review"></div>
 </section>
 
-<section class="step" id="stepStamp">
+<section class="step off" id="stepStamp" hidden aria-hidden="true">
   <div class="stephead"><span class="n">刻</span><h2>刻印</h2><span class="hint">生成した画像の右下に、小さな印を入れます</span></div>
   <p class="note">生成した画像をここに入れると、右下に半透明の「Shotbook ©2026 shizuri_tk」を刻印した画像を返します。処理はお使いの端末の中だけで行われ、画像がどこかへ送られることはありません。この道具は誰でも使えます。生成時の刻印の指示は、解除鍵をお持ちの方だけ七の段で外せます。</p>
   <div class="field" style="margin-top:10px"><label for="wmFile">画像を選ぶ</label><input type="file" id="wmFile" accept="image/*"></div>
@@ -851,7 +853,7 @@ footer.credit b{font-family:var(--font-logo);font-size:22px;color:var(--ink);let
 (function(){
 'use strict';
 const $ = (id)=>document.getElementById(id);
-const APP_VERSION = '配布版 第22版 ／ 2026-11-03 20:31 JST';
+const APP_VERSION = '配布版 第22版 ／ 2026-11-03 20:59 JST';
 document.addEventListener('DOMContentLoaded', ()=>{ const v=$('verMark'); if(v) v.textContent = APP_VERSION; });
 function esc(t){ return String(t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.textContent=''; }, 2600); }
@@ -1403,7 +1405,7 @@ $('delSavedBtn').addEventListener('click', ()=>{ const k=$('savedSel').value; if
   const get=(k,d)=>{ try{ return localStorage.getItem(k)||d; }catch(e){ return d; } }; const put=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
   const applyTheme=(t)=>{ if(t==='light'||t==='dark') document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme; };
   const th=get(THKEY,'auto'); applyTheme(th); $('themeMode').value=th; $('themeMode').addEventListener('change',()=>{ put(THKEY,$('themeMode').value); applyTheme($('themeMode').value); });
-  const steps=[...document.querySelectorAll('section.step')]; const bar=document.createElement('nav'); bar.className='tabgrid'; document.querySelector('header.top').insertAdjacentElement('afterend', bar);
+  const steps=[...document.querySelectorAll('section.step:not(.off)')]; const bar=document.createElement('nav'); bar.className='tabgrid'; document.querySelector('header.top').insertAdjacentElement('afterend', bar);
   const short=(h)=>{ const M=[[/フィルター/,'フィルター'],[/光の一致/,'光'],[/シーン/,'シーン'],[/ポーズ集/,'ポーズ集'],[/人物/,'人物'],[/カメラ/,'カメラ'],[/出力と制約/,'出力'],[/最終確認/,'確認'],[/刻印/,'刻印']]; for(const [re,l] of M){ if(re.test(h)) return l; } return h.slice(0,5); };
   const EN={'フィルター':['filter','Filter'],'ポーズ集':['poses','Poses'],'光':['light','Light'],'シーン':['scene','Scene'],'人物':['people','People'],'カメラ':['camera','Camera'],'出力':['output','Output'],'確認':['check','Check'],'プロンプト':['prompt','Prompt'],'刻印':['stamp','Stamp']};
   const tabs=[]; steps.forEach(sec=>{ const n=sec.querySelector('.n'), h=sec.querySelector('h2'); const label=short(h.textContent); const en=EN[label]||['dot',label]; tabs.push({id:sec.id, k:n?n.textContent:'', label, ic:en[0], en:en[1]}); if(n){ const head=n.parentElement; const ic=document.createElement('span'); ic.className='ic ic-'+en[0]; ic.setAttribute('aria-hidden','true'); head.insertBefore(ic, n); const eb=document.createElement('span'); eb.className='eyebrow'; eb.textContent=en[1]; h.insertAdjacentElement('afterend', eb); } if(/最終確認/.test(h.textContent)) tabs.push({id:'out', k:'出', label:'プロンプト', ic:'prompt', en:'Prompt'}); });
