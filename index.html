@@ -853,7 +853,7 @@ footer.credit b{font-family:var(--font-logo);font-size:22px;color:var(--ink);let
 (function(){
 'use strict';
 const $ = (id)=>document.getElementById(id);
-const APP_VERSION = '配布版 第22版 ／ 2026-11-03 20:59 JST';
+const APP_VERSION = '配布版 第22版 ／ 2026-11-03 21:08 JST';
 document.addEventListener('DOMContentLoaded', ()=>{ const v=$('verMark'); if(v) v.textContent = APP_VERSION; });
 function esc(t){ return String(t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.textContent=''; }, 2600); }
@@ -1117,7 +1117,8 @@ function pron(g){ return g==='male'?{s:'he',o:'him',p:'his'}:g==='female'?{s:'sh
 function clean(t){ return String(t||'').trim().replace(/\s*\n\s*/g,' '); }
 function buildPrompt(){
   const st=state, f=F(), out=[];
-  const people=(st.people||[]).map((p,i)=>Object.assign({idx:i+1}, p));
+  const hnum=(v)=>{ const m=String(v==null?'':v).replace(/[０-９．]/g, ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0)).match(/\d+(?:\.\d+)?/); return m?Number(m[0]):''; };
+  const people=(st.people||[]).map((p,i)=>Object.assign({idx:i+1}, p, {height:hnum(p.height)}));
   const NP=people.length; const ONE=NP===1; const WHO = NP===0?'':NP===1?'the person':'the people';
   const NF=Math.max(1,Math.min(8,+st.count||1)); const multi=NF>1;
   const ratioText=st.ratio; const isWide=['16:9','3:2','4:3','21:9'].includes(ratioText); const orient= ratioText==='1:1'?'square':isWide?'horizontal':'vertical';
