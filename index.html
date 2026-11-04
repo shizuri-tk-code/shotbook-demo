@@ -427,6 +427,31 @@ section.step.off{display:none!important}
 .curset::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);align-self:center;flex:none}
 .curset.on::before{background:var(--ok)}.curset.mod::before{background:var(--accent2)}.curset.init::before{background:var(--accent)}
 .curset:hover{border-color:var(--accent)}
+/* pose multi-select */
+.posecount{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:2px 0 14px}
+.posecount label{font-family:var(--font-display);font-size:11px;letter-spacing:.26em;color:var(--accent)}
+.posecount select{width:auto;min-width:84px;padding:6px 28px 6px 12px;border-radius:999px}
+.posecount .note{flex:1 1 260px;margin:0}
+.pcard{position:relative}
+.pcard .fn{position:absolute;top:8px;left:8px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:var(--primary-bg);color:var(--primary-fg);font-family:var(--font-display);font-size:13px;font-weight:600;line-height:24px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2);z-index:2}
+.pcard .fn.over{background:var(--muted);opacity:.8}
+#poseInfo{display:block!important}
+#poseInfo .pi{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+@media (min-width:720px){#poseInfo .pi{grid-template-columns:180px minmax(0,1fr)}}
+#poseInfo .pi+.pi{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+#poseInfo .pi img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.framelist{list-style:none;margin:8px 0 10px;padding:0;display:grid;gap:6px}
+.framelist li{display:flex;gap:12px;align-items:baseline;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--field-fill)}
+.framelist .no{font-family:var(--font-display);font-weight:600;color:var(--accent);min-width:1.4em}
+.framelist em{color:var(--muted);font-style:normal}
+.framelist .sep{color:var(--muted);margin:0 .4em}
+dialog.posewarn{max-width:480px;padding:24px 24px 18px}
+dialog.posewarn ul{list-style:none;padding:0;margin:0 0 4px}
+dialog.posewarn li{display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.75}
+dialog.posewarn li:first-child{border-top:0}
+dialog.posewarn li b{font-weight:600}
+dialog.posewarn li span{color:var(--muted)}
+dialog.posewarn .btns{gap:10px}
 /* first-run notice */
 dialog.notice{position:fixed;inset:0;margin:auto;max-width:560px;width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto;padding:30px 30px 22px;border:1px solid var(--glass-border);border-radius:22px;background:var(--modal-bg);color:var(--fg);box-shadow:0 40px 80px -30px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
 dialog.notice::backdrop{background:rgba(22,17,14,.38);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
@@ -677,6 +702,7 @@ footer.credit b{font-family:var(--font-logo);font-size:22px;color:var(--ink);let
 <section class="step" id="stepPose">
   <div class="stephead"><span class="n">二</span><h2>ポーズ集</h2><span class="hint">写真でよく使われる定番の構図とポーズ。選ぶとカメラの項目もおすすめの値になります。任意</span></div>
   <p class="note">ポーズは人物の動きと手と視線の骨格だけを渡します。シーンの「行動」や各人物の欄に書いたことが、その上に重なります。二人のポーズは人物1と人物2の順で当てはめます。</p>
+  <div class="posecount"><label for="poseCount">枚数</label><select id="poseCount" aria-label="枚数"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select><p class="note" id="poseMultiHint"></p></div>
   <div class="groups" id="poseGroups"></div>
   <div class="analysis" id="poseInfo" hidden></div>
   <div class="checks" style="margin-top:12px">
@@ -833,6 +859,11 @@ footer.credit b{font-family:var(--font-logo);font-size:22px;color:var(--ink);let
   <div class="btns agreebar"><label class="agree"><input type="checkbox" id="noticeRead"> 全て読みました</label><button type="button" class="b primary" id="noticeOk" disabled>承諾します</button></div>
 </dialog>
 
+<dialog id="poseWarn" class="notice posewarn" aria-labelledby="poseWarnTitle">
+  <h2 id="poseWarnTitle">選んだポーズと構図について</h2>
+  <ul id="poseWarnList"></ul>
+  <div class="btns"><button type="button" class="b" id="poseWarnUndo">選択を取り消す</button><button type="button" class="b primary" id="poseWarnKeep">このまま使う</button></div>
+</dialog>
 <dialog id="prefs" class="notice prefs" aria-labelledby="prefsTitle">
   <h2 id="prefsTitle">表示とテーマ</h2>
   <div class="prefrow"><div class="lbl">段の見せ方</div><div id="prefView"></div><p class="note">タブは一段ずつ、一覧は全部の段を縦に並べます。</p></div>
@@ -862,7 +893,7 @@ footer.credit b{font-family:var(--font-logo);font-size:22px;color:var(--ink);let
 (function(){
 'use strict';
 const $ = (id)=>document.getElementById(id);
-const APP_VERSION = '配布版 第23版 ／ 2026-11-03 22:40 JST';
+const APP_VERSION = '配布版 第24版 ／ 2026-11-05 06:59 JST';
 document.addEventListener('DOMContentLoaded', ()=>{ const v=$('verMark'); if(v) v.textContent = APP_VERSION; });
 function esc(t){ return String(t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.textContent=''; }, 2600); }
@@ -995,7 +1026,69 @@ const POSES = [
  {id:'f-reflection', group:'frame', name:'鏡や水面に映す', tags:'反射 / 二重', ja:'鏡、濡れた地面、窓に人物が映る。映った方は少し柔らかい。', en:'the people and their reflection in a mirror, wet ground or a window; the reflection a little softer than the people', cam:C({angEye:true, shotVal:75, placement:'center'})}
 ];
 const POSE_GROUPS=[{id:'couple', name:'二人のポーズ'}, {id:'solo', name:'一人のポーズ'}, {id:'frame', name:'画面の作り（構図だけ）'}];
-const POSE = ()=> POSES.find(p=>p.id===state.pose) || null;
+const POSE_BY = (id)=> POSES.find(p=>p.id===id) || null;
+function migratePose(st){ st=st||state; if(!Array.isArray(st.poseSel)) st.poseSel=[]; if(!Array.isArray(st.compSel)) st.compSel=[];
+  if(st.pose){ const p=POSE_BY(st.pose); if(p){ const arr=p.group==='frame'?st.compSel:st.poseSel; if(!arr.includes(p.id)) arr.unshift(p.id); } st.pose=''; }
+  st.poseSel=st.poseSel.filter((id,i,a)=>{ const p=POSE_BY(id); return p && p.group!=='frame' && a.indexOf(id)===i; });
+  st.compSel=st.compSel.filter((id,i,a)=>{ const p=POSE_BY(id); return p && p.group==='frame' && a.indexOf(id)===i; }); return st; }
+const NFRAMES = ()=> Math.max(1,Math.min(8,+state.count||1));
+const POSES_SEL = ()=> (state.poseSel||[]).map(POSE_BY).filter(Boolean);
+const COMPS_SEL = ()=> (state.compSel||[]).map(POSE_BY).filter(Boolean);
+const POSE = ()=> POSES_SEL()[0] || null;
+const COMP = ()=> COMPS_SEL()[0] || null;
+function poseAt(i){ const ps=POSES_SEL(); return ps.length===1 ? ps[0] : (i < NFRAMES() ? ps[i]||null : null); }
+function compAt(i){ const cs=COMPS_SEL(); return cs.length===1 ? cs[0] : (i < NFRAMES() ? cs[i]||null : null); }
+function perFrame(){ return NFRAMES()>1 && (POSES_SEL().length>1 || COMPS_SEL().length>1); }
+/* clashes between a pose and a composition shown in the same image */
+const COMP_CLASH = {
+ 'f-face-fill': {poses:['walk-hand','lead-look-back','twirl','back-to-back','head-shoulder','princess-carry','steps','walk-toward','stand-pockets','look-back','lean-wall','look-up'], why:'顔で画面を埋める構図では、脚や全身の動きが画面に入りません。ポーズの見せ場が切れます。'},
+ 'f-negative': {poses:['hair-tuck','lift-chin','cup-cheek','forehead-kiss','forehead-touch','hand-hair','look-down-hands'], why:'人物を小さく置く構図では、指先や表情の小さな仕草が読めなくなります。'},
+ 'f-silhouette': {poses:['hair-tuck','lift-chin','cup-cheek','hand-hair','look-down-hands'], why:'逆光のシルエットでは顔と手元が影に沈み、仕草が見えにくくなります。'},
+ 'f-high': {poses:['princess-carry','twirl','walk-toward'], why:'真上寄りの視点では、抱き上げや回転、歩いてくる動きの高さと勢いが潰れて見えます。'},
+ 'f-low-hero': {poses:['head-shoulder','steps','look-down-hands'], why:'低い視点から見上げる構図では、座ったポーズや手元が画面の下に詰まります。'},
+};
+function framePairs(){ const n=NFRAMES(); const out=[]; const ps=POSES_SEL(), cs=COMPS_SEL();
+  if(n<=1 || (ps.length<=1 && cs.length<=1)) out.push({i:-1, pz:ps[0]||null, cz:cs[0]||null});
+  else for(let i=0;i<n;i++) out.push({i, pz:poseAt(i), cz:compAt(i)});
+  return out; }
+function poseConflictsFor(pz){ if(!pz || pz.group==='frame') return []; const allowed=POSE_ALLOWED[pz.id]||[];
+  const texts=[['状況',state.situation],['行動',state.action]].concat((state.people||[]).flatMap((p,i)=>[[`人物${i+1}の動き`,p.action],[`人物${i+1}の姿勢`,p.posture]]));
+  const out=[]; for(const [where,t] of texts){ const s=clean(t).toLowerCase(); if(!s) continue;
+    for(const [fam,words] of Object.entries(POSTURE_FAMILIES)){ if(allowed.includes(fam)) continue; const w=words.find(x=>s.includes(x.toLowerCase())); if(w){ out.push({where, word:w, fam, pose:pz.name}); break; } } }
+  return out; }
+function selectionIssues(only){ const out=[]; const seen=new Set(); const add=(t,d)=>{ if(seen.has(t)) return; seen.add(t); out.push({t,d}); };
+  const nP=(state.people||[]).length;
+  framePairs().forEach(({i,pz,cz})=>{ if(!pz||!cz) return; if(only && only!==pz.id && only!==cz.id) return; const c=COMP_CLASH[cz.id]; if(c && c.poses.includes(pz.id)) add(`${i>=0?(i+1)+' 枚目：':''}「${pz.name}」と構図「${cz.name}」`, c.why); });
+  POSES_SEL().forEach(pz=>{ if(only && only!==pz.id) return;
+    if(pz.group==='couple' && nP===1) add(`「${pz.name}」は二人のポーズです`, '人物の欄には一人しかいません。二人目は画像生成側が勝手に決めます。人物を足すか、一人のポーズを選んでください。');
+    if(pz.group==='solo' && nP>=2) add(`「${pz.name}」は一人のポーズです`, '人物の欄には二人以上います。このポーズは人物1に当てはまり、二人目の動きは決まりません。シーンの欄に二人目の動きを書くか、二人のポーズを選んでください。');
+    if(state.posePriority!=='scene'){ const cf=poseConflictsFor(pz); if(cf.length) add(`「${cf[0].where}」の欄の「${cf[0].word}」`, `選んだポーズ「${pz.name}」と体の形が食い違う可能性があります。どちらかを直すか、確認の段で「文を優先する」を選んでください。`); } });
+  return out; }
+function showPoseWarn(list, onUndo){ const d=$('poseWarn'); if(!d){ return; }
+  $('poseWarnList').innerHTML=list.map(x=>`<li><b>${esc(x.t)}</b><span>${esc(x.d)}</span></li>`).join('');
+  const undo=$('poseWarnUndo'), keep=$('poseWarnKeep'); undo.hidden=!onUndo; keep.textContent=onUndo?'このまま使う':'閉じる';
+  undo.onclick=()=>{ try{ d.close(); }catch(e){ d.removeAttribute('open'); } if(onUndo) onUndo(); };
+  keep.onclick=()=>{ try{ d.close(); }catch(e){ d.removeAttribute('open'); } };
+  try{ if(!d.open) d.showModal(); }catch(e){ d.setAttribute('open',''); } }
+function syncPoseCards(){ migratePose(); const n=NFRAMES(); const multi=n>1;
+  document.querySelectorAll('.pcard').forEach(c=>{ const id=c.dataset.id; const p=POSE_BY(id); const arr=p&&p.group==='frame'?state.compSel:state.poseSel; const i=arr.indexOf(id);
+    c.setAttribute('aria-pressed', i>=0?'true':'false'); let fn=c.querySelector('.fn'); if(!fn){ fn=document.createElement('span'); fn.className='fn'; c.appendChild(fn); }
+    const show=i>=0&&multi&&arr.length>1; fn.textContent=show?String(i+1):''; fn.hidden=!show; fn.classList.toggle('over', show && i>=n); fn.title=show&&i>=n?'枚数を超えているので使われません':''; });
+  const hint=$('poseMultiHint'); if(hint) hint.textContent = multi ? `今は ${n} 枚です。ポーズと構図を、それぞれ ${n} つまで選べます。選んだ順に 1 枚目、2 枚目…に入ります。一つだけ選ぶと、全部の枚に同じものが入ります。` : '一枚の時は、ポーズを一つと構図を一つ、組み合わせて選べます。枚数を増やすと、枚ごとに別のポーズや構図を選べます。';
+  const pc=$('poseCount'); if(pc && document.activeElement!==pc) pc.value=String(n); }
+function onPoseCard(p){ migratePose(); const n=NFRAMES(); const isComp=p.group==='frame'; const key=isComp?'compSel':'poseSel'; const arr=state[key].slice(); const i=arr.indexOf(p.id);
+  if(i>=0){ arr.splice(i,1); state[key]=arr; userTouched=true; syncPoseCards(); update(); toast(`「${p.name}」を外しました`); return; }
+  const before={poseSel:state.poseSel.slice(), compSel:state.compSel.slice(), cam:CAM_KEYS.reduce((o,k)=>(o[k]=state[k],o),{})};
+  if(n<=1) state[key]=[p.id];
+  else { if(arr.length>=n){ showPoseWarn([{t:`今は ${n} 枚なので、${isComp?'構図':'ポーズ'}は ${n} つまでです`, d:'どれかをもう一度押して外すか、枚数を増やしてください。'}], null); return; } arr.push(p.id); state[key]=arr; }
+  state.posePriority='pose';
+  const total=state.poseSel.length+state.compSel.length;
+  if($('poseCam') && $('poseCam').checked && (n<=1 || total===1)){ applyPoseCam(p); writeUI(); }
+  userTouched=true; syncPoseCards(); update();
+  const issues=selectionIssues(p.id);
+  if(issues.length) showPoseWarn(issues, ()=>{ state.poseSel=before.poseSel; state.compSel=before.compSel; Object.assign(state, before.cam); writeUI(); syncPoseCards(); update(); toast(`「${p.name}」の選択を取り消しました`); });
+  else toast(`「${p.name}」を選びました`+(n>1&&state[key].length>1?`（${state[key].indexOf(p.id)+1} 枚目）`:''));
+}
 const CAM_KEYS=['angHigh','angHighDeg','angLow','angLowDeg','angEye','angSide','angSideDeg','angDutch','angDutchDeg','angShot','shotVal','dof','placement','placeX','placeY','cForeground','keyPos'];
 function applyPoseCam(p){ if(!p||!p.cam) return; CAM_KEYS.forEach(k=>{ if(k in p.cam) state[k]=p.cam[k]; }); }
 function poseText(p){
@@ -1025,19 +1118,23 @@ function renderCurrent(){ const el=$('curSet'); if(!el) return; const c=state._c
 function renderPoses(){
   const wrap=$('poseGroups'); if(!wrap) return; wrap.innerHTML='';
   POSE_GROUPS.forEach(g=>{ const div=document.createElement('div'); div.className='group'; const h=document.createElement('h3'); h.textContent=g.name; div.appendChild(h); const cards=document.createElement('div'); cards.className='pcards';
-    POSES.filter(p=>p.group===g.id).forEach(p=>{ const b=document.createElement('button'); b.type='button'; b.className='pcard'; b.dataset.id=p.id; b.setAttribute('aria-pressed', p.id===state.pose?'true':'false');
+    POSES.filter(p=>p.group===g.id).forEach(p=>{ const b=document.createElement('button'); b.type='button'; b.className='pcard'; b.dataset.id=p.id; b.setAttribute('aria-pressed','false');
       b.innerHTML=`<img src="img/pose/${p.id}.jpg" alt="" loading="lazy" onerror="this.remove()"><span class="nm">${esc(p.name)}</span><span class="tg">${esc(p.tags)}</span>`;
-      b.addEventListener('click', ()=>{ state.pose = (state.pose===p.id) ? '' : p.id; state.posePriority='pose'; if(state.pose && $('poseCam') && $('poseCam').checked){ applyPoseCam(p); writeUI(); } document.querySelectorAll('.pcard').forEach(c=>c.setAttribute('aria-pressed', c.dataset.id===state.pose?'true':'false')); userTouched=true; update(); toast(state.pose?`「${p.name}」を選びました`:'ポーズを外しました'); });
+      b.addEventListener('click', ()=>onPoseCard(p));
       cards.appendChild(b); });
     div.appendChild(cards); wrap.appendChild(div); });
+  syncPoseCards();
 }
-function renderPoseInfo(){ const box=$('poseInfo'); if(!box) return; const p=POSE(); if(!p){ box.hidden=true; box.innerHTML=''; return; } box.hidden=false; box.innerHTML=`<div><img src="img/pose/${p.id}.jpg" alt="${esc(p.name)}の見本" onerror="this.remove()"></div><div><h3>${esc(p.name)}</h3><div class="meta">${esc(p.tags)}</div><p>${esc(p.ja)}</p><p class="note">出力では [${p.group==='frame'?'FRAMING':'POSE'}] の行になります。もう一度押すと外れます。見本は架空の二人で、同じ薔薇園で撮ったものです。</p></div>`; }
+function renderPoseInfo(){ const box=$('poseInfo'); if(!box) return; const ps=POSES_SEL(), cs=COMPS_SEL(); if(!ps.length&&!cs.length){ box.hidden=true; box.innerHTML=''; return; } box.hidden=false; const n=NFRAMES();
+  if(!perFrame()){ box.innerHTML=[ps[0],cs[0]].filter(Boolean).map(p=>`<div class="pi"><img src="img/pose/${p.id}.jpg" alt="${esc(p.name)}の見本" onerror="this.remove()"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(p.tags)}</div><p>${esc(p.ja)}</p><p class="note">出力では [${p.group==='frame'?'FRAMING':'POSE'}] の行${p.hands?'と、四つの手の割り振り [HANDS] の行':''}になります。${n>1?'全部の枚に同じものが入ります。':''}もう一度押すと外れます。見本は架空の二人で、同じ薔薇園で撮ったものです。</p></div></div>`).join(''); return; }
+  const rows=Array.from({length:n},(_,i)=>{ const pz=poseAt(i), cz=compAt(i); return `<li><span class="no">${i+1}</span><span class="what">${pz?esc(pz.name):'<em>ポーズ指定なし</em>'}${cz?'<span class="sep">／</span>'+esc(cz.name):''}</span></li>`; }).join('');
+  box.innerHTML=`<div class="pi-multi"><h3>枚ごとの割り当て</h3><ol class="framelist">${rows}</ol><p class="note">選んだ順に 1 枚目から入ります。カードをもう一度押すと外れ、後ろが詰まります。指定のない枚は、共通のシチュエーションとコマごとのシーンに従います。</p></div>`; }
 
 /* ---------- state ---------- */
 const DEFAULTS = {
   filter:'dusk-warm-lamp', dev:'faithful', smoke:'std', haze:'std', grain:'std', grade:'none', gradeTemp:0, gradeEV:0, gradeHL:0, gradeBlack:0, gradeSat:0,
   cSceneLight:true, cPractical:true, keyPos:'preset',
-  timeOfDay:'preset', place:'preset', placeDetail:'', situation:'', action:'', moment:'', foreground:'', mood:'', cStory:true, cNoEye:true, frames:[], pose:'', poseCam:true,
+  timeOfDay:'preset', place:'preset', placeDetail:'', situation:'', action:'', moment:'', foreground:'', mood:'', cStory:true, cNoEye:true, frames:[], pose:'', poseSel:[], compSel:[], poseCam:true,
   people:[], angHigh:false, angHighDeg:25, angLow:false, angLowDeg:25, angEye:false, angSide:false, angSideDeg:45, angDutch:false, angDutchDeg:15, angShot:false, shotVal:50,
   dof:'preset', placement:'none', placeX:33, placeY:35, cForeground:false,
   ratio:'3:4', size:'2k', count:1, layout:'files', qPhoto:true, q8k:true, qTexture:true, multiRules:true, verbatimHead:true, wmPrompt:true, cAnatomy:true, posePriority:'pose',
@@ -1187,7 +1284,9 @@ function buildPrompt(){
   out.push('');
   const t = st.timeOfDay==='preset'?f.time:st.timeOfDay; const pl = st.place==='preset'?f.place:st.place;
   L('SCENE', [TIME_EN[t]||t, PLACE_EN[pl]||pl, clean(st.placeDetail)?'place: '+clean(st.placeDetail):'', clean(st.situation)||(clean(st.action)?'':'a quiet moment that suits the place, caught in the middle of an action')]);
-  { const pz=POSE(); if(pz){ L(pz.group==='frame'?'FRAMING':'POSE', poseText(pz)); if(pz.hands) L('HANDS', handsText(pz)); L('PRIORITY', priorityText(pz)); } }
+  { const ps=POSES_SEL(), cs=COMPS_SEL(); const prio=[ps[0]&&priorityText(ps[0]), cs[0]&&priorityText(cs[0])].filter(Boolean).join('; ');
+    if(!perFrame()){ const pz=ps[0], cz=cs[0]; if(pz){ L('POSE', poseText(pz)); if(pz.hands) L('HANDS', handsText(pz)); } if(cz) L('FRAMING', poseText(cz)); if(prio) L('PRIORITY', prio); }
+    else L('PRIORITY', prio+'; each FRAME n POSE, HANDS and FRAMING line applies only to that frame'); }
   if(clean(st.action)) L('ACTION', clean(st.action));
   if(clean(st.moment)) L('MOMENT', clean(st.moment));
   L('MOOD', [clean(st.mood), st.cStory?'one beat of a longer story: something has just happened and something is about to, readable from gesture and gaze':'']);
@@ -1226,8 +1325,8 @@ function buildPrompt(){
   const sizeTxt = st.size==='2k'?'about 2048 px on the long side':st.size==='1k'?'about 1024 to 1536 px on the long side':'size of your choice';
   if(multi){
     L('OUTPUT', [ratioText, sizeTxt, st.layout==='grid'?`one image divided into ${NF} panels, thin dark gutters, like a storyboard; each panel its own photograph with its own framing, angle, focal length and depth of field`:`${NF} images, each a separate file, never a grid or collage`, 'same people, same outfits, same place and the same light in all']);
-    L('SERIES', [st.multiRules?'fixed: the identities, the outfits, the place and its light; varies: pose, camera angle, focal length and depth of field, the moment, head direction and expression':'']);
-    (st.frames||[]).slice(0,NF).forEach((fr,i)=>{ if(clean(fr)) L(`FRAME ${i+1}`, clean(fr)); });
+    { const onePose=POSES_SEL().length===1; L('SERIES', [st.multiRules?`fixed: the identities, the outfits, the place and its light${onePose?', and the same pose in every frame':''}; varies: ${onePose?'':'pose, '}camera angle, focal length and depth of field, the moment, head direction and expression`:'']); }
+    for(let i=0;i<NF;i++){ const fr=(st.frames||[])[i]; if(clean(fr)) L(`FRAME ${i+1}`, clean(fr)); if(perFrame()){ const pz=poseAt(i), cz=compAt(i); if(pz){ L(`FRAME ${i+1} POSE`, poseText(pz)); if(pz.hands) L(`FRAME ${i+1} HANDS`, handsText(pz)); } if(cz) L(`FRAME ${i+1} FRAMING`, poseText(cz)); } }
   } else L('OUTPUT', [ratioText, sizeTxt, 'one single photograph, one frame']);
   if(wmOn(st)) L('CREDIT', WM_LINE);
   /* rules */
@@ -1235,8 +1334,8 @@ function buildPrompt(){
   const negs=(st.neg||[]).filter(k=>NEG[k] && !(k==='noise' && st.grain!=='none'));
   if(st.negStyle!=='avoid') L('RULES', negs.map(k=>NEG[k].pos));
   if(st.cAnatomy && NP) L('ANATOMY', ANATOMY_JA + (people.some(p=>p.gender==='female') ? ANATOMY_W : ''));
-  if(st.negStyle!=='positive'){ const av=[]; negs.forEach(k=>{ if(NEG[k].avoid) av.push(NEG[k].avoid); }); String(st.negExtra||'').split(/[、,\n]/).map(x=>x.trim()).filter(Boolean).forEach(x=>av.push(x)); if(st.cNoEye&&NP) av.push('eye contact with the camera'); { const pz=POSE(); if(pz&&pz.hands) av.push('a floating hand without its forearm, an arm growing out of the chest, more than four hands, a second wristwatch, extra fingers'); } if(PI.on&&!PI.centerX) av.push('centered composition'); av.push(multi&&st.layout==='grid'?'':'grid, collage, split frame, cut-up panels'); const flat=[]; av.forEach(s=>String(s).split(/,\s*/).forEach(x=>{ x=x.trim(); if(x&&!flat.includes(x)) flat.push(x); })); L('AVOID', flat.join(', ')); }
-  const chk=[]; if(NP) chk.push(`two arms and two hands on ${ONE?'the person':'each person'}`); { const pz=POSE(); if(pz&&pz.hands) chk.push('every visible hand shows its forearm back to its own shoulder; no floating hand'); } if(heightLine) chk.push('the height relation above holds'); if(PI.on&&NP) chk.push(layoutShort(PI, WHO)); if(shotOn&&tier==='ls'&&NP) chk.push(`${WHO} head to toe inside the frame`); L('CHECK', chk);
+  if(st.negStyle!=='positive'){ const av=[]; negs.forEach(k=>{ if(NEG[k].avoid) av.push(NEG[k].avoid); }); String(st.negExtra||'').split(/[、,\n]/).map(x=>x.trim()).filter(Boolean).forEach(x=>av.push(x)); if(st.cNoEye&&NP) av.push('eye contact with the camera'); { if(POSES_SEL().some(p=>p.hands)) av.push('a floating hand without its forearm, an arm growing out of the chest, more than four hands, a second wristwatch, extra fingers'); } if(PI.on&&!PI.centerX) av.push('centered composition'); av.push(multi&&st.layout==='grid'?'':'grid, collage, split frame, cut-up panels'); const flat=[]; av.forEach(s=>String(s).split(/,\s*/).forEach(x=>{ x=x.trim(); if(x&&!flat.includes(x)) flat.push(x); })); L('AVOID', flat.join(', ')); }
+  const chk=[]; if(NP) chk.push(`two arms and two hands on ${ONE?'the person':'each person'}`); { if(POSES_SEL().some(p=>p.hands)) chk.push('every visible hand shows its forearm back to its own shoulder; no floating hand'); } if(heightLine) chk.push('the height relation above holds'); if(PI.on&&NP) chk.push(layoutShort(PI, WHO)); if(shotOn&&tier==='ls'&&NP) chk.push(`${WHO} head to toe inside the frame`); L('CHECK', chk);
   if(PI.on&&NP){ out.push(''); out.push(`[LAYOUT] ${layoutShort(PI, WHO)}`); }
   if(heightLine){ out.push(`[HEIGHT] ${heightLine}`); }
   return out.join('\n');
@@ -1252,13 +1351,14 @@ function readUI(){
   const tas=[...document.querySelectorAll('#frames textarea')]; if(tas.length) state.frames=tas.map(t=>t.value); if(!Array.isArray(state.frames)) state.frames=[];
 }
 function writeUI(){
+  migratePose();
   CHECK_IDS.forEach(id=>{ const el=$(id); if(el) el.checked=!!state[id]; });
   SELECT_IDS.forEach(id=>{ const el=$(id); if(el) el.value=state[id]; });
   NUM_IDS.forEach(id=>{ const el=$(id); if(el) el.value=state[id]; });
   TEXT_IDS.forEach(id=>{ const el=$(id); if(el) el.value=state[id]||''; });
   document.querySelectorAll('#negChecks input').forEach(c=>{ c.checked=(state.neg||[]).includes(c.value); });
   document.querySelectorAll('.card').forEach(c=>c.setAttribute('aria-pressed', c.dataset.id===state.filter?'true':'false'));
-  document.querySelectorAll('.pcard').forEach(c=>c.setAttribute('aria-pressed', c.dataset.id===state.pose?'true':'false'));
+  syncPoseCards();
   renderFrames(); renderPeople();
 }
 function syncVisibility(){ $('gradeSliders').hidden = state.grade!=='custom'; }
@@ -1287,9 +1387,9 @@ function growAll(){ document.querySelectorAll('textarea.grow').forEach(growTA); 
 document.addEventListener('input', (e)=>growTA(e.target));
 
 /* preview and review */
-function catOf(lb){ if(lb==='WATERMARK') return 'format'; if(lb==='ANATOMY') return 'rule'; if(lb==='ACTION'||lb==='MOMENT'||lb==='POSE'||lb==='HANDS'||lb==='PRIORITY') return 'scene'; if(lb==='FOREGROUND'||lb==='FRAMING') return 'layout'; if(/^(FORMAT|SUBJECT|STYLE|OUTPUT|SERIES|FRAME \d+)$/.test(lb)) return 'format'; if(/^(LAYOUT|CAMERA|COMPOSITION|LENS)$/.test(lb)) return 'layout'; if(/^(PERSON \d+|PEOPLE NOTE)$/.test(lb)) return 'people'; if(/^HEIGHT$/.test(lb)) return 'height'; if(/^(SCENE|MOOD)$/.test(lb)) return 'scene'; if(/^(REF( \d+)?|IDENTITY)$/.test(lb)) return 'ref'; if(/^(LIGHT|LOOK|TEXTURE|GRADE)$/.test(lb)) return 'light'; if(/^(RULES|AVOID|CHECK)$/.test(lb)) return 'rule'; return 'head'; }
+function catOf(lb){ if(lb==='WATERMARK') return 'format'; if(lb==='ANATOMY') return 'rule'; if(lb==='ACTION'||lb==='MOMENT'||lb==='POSE'||lb==='HANDS'||lb==='PRIORITY'||/^FRAME \d+ (POSE|HANDS)$/.test(lb)) return 'scene'; if(/^FRAME \d+ FRAMING$/.test(lb)) return 'layout'; if(lb==='FOREGROUND'||lb==='FRAMING') return 'layout'; if(/^(FORMAT|SUBJECT|STYLE|OUTPUT|SERIES|FRAME \d+)$/.test(lb)) return 'format'; if(/^(LAYOUT|CAMERA|COMPOSITION|LENS)$/.test(lb)) return 'layout'; if(/^(PERSON \d+|PEOPLE NOTE)$/.test(lb)) return 'people'; if(/^HEIGHT$/.test(lb)) return 'height'; if(/^(SCENE|MOOD)$/.test(lb)) return 'scene'; if(/^(REF( \d+)?|IDENTITY)$/.test(lb)) return 'ref'; if(/^(LIGHT|LOOK|TEXTURE|GRADE)$/.test(lb)) return 'light'; if(/^(RULES|AVOID|CHECK)$/.test(lb)) return 'rule'; return 'head'; }
 function catJa(c){ return ({format:'書式・出力', layout:'構図・カメラ', people:'人物', height:'身長の関係', scene:'シーン', ref:'資料', light:'光・色・質感', rule:'制約', head:'前置き'})[c]||c; }
-function renderPreview(txt){ const pre=$('preview'); let cat='head'; pre.innerHTML=txt.split('\n').map(line=>{ if(!line.trim()) return '<span class="ln c-blank"> </span>'; const m=line.match(/^\[([A-Z][A-Z ]*\d*)\]\s?(.*)$/); if(m){ cat=catOf(m[1]); return `<span class="ln c-${cat}"><span class="lb">[${esc(m[1])}]</span> ${esc(m[2])}</span>`; } return `<span class="ln c-head">${esc(line)}</span>`; }).join(''); }
+function renderPreview(txt){ const pre=$('preview'); let cat='head'; pre.innerHTML=txt.split('\n').map(line=>{ if(!line.trim()) return '<span class="ln c-blank"> </span>'; const m=line.match(/^\[([A-Z][A-Z0-9 ]*)\]\s?(.*)$/); if(m){ cat=catOf(m[1]); return `<span class="ln c-${cat}"><span class="lb">[${esc(m[1])}]</span> ${esc(m[2])}</span>`; } return `<span class="ln c-head">${esc(line)}</span>`; }).join(''); }
 
 /* ---------- pose guard: precedence line, hints and conflict warnings ---------- */
 const POSTURE_FAMILIES = {
@@ -1297,8 +1397,8 @@ const POSTURE_FAMILIES = {
 };
 const POSE_ALLOWED = { 'forehead-touch':['forehead','cheek','hug'], 'back-hug':['hug'], 'princess-carry':['carry','hug'], 'wall-lean':['wall','hug','lean'], 'forehead-kiss':['forehead','kiss','hug'], 'walk-hand':['walk','hand'], 'lead-look-back':['walk','hand'], 'head-shoulder':['sit','lean','hug'], 'cup-cheek':['cheek'], 'lift-chin':['chin','hug'], 'hair-tuck':['hair'], 'twirl':['twirl','hand'], 'back-to-back':['back2back','lean'], 'look-back':['walk'], 'lean-wall':['wall','lean'], 'window':[], 'steps':['sit'], 'walk-toward':['walk'], 'hand-hair':['hair'], 'look-down-hands':['sit','hand'], 'profile-wind':[], 'stand-pockets':[], 'look-up':[] };
 function poseConflicts(){
-  const pz=POSE(); if(!pz || pz.group==='frame') return [];
-  const allowed=POSE_ALLOWED[pz.id]||[];
+  const ps=POSES_SEL(); if(!ps.length) return []; const pz=ps[0];
+  const allowed=[...new Set(ps.flatMap(p=>POSE_ALLOWED[p.id]||[]))];
   const texts=[['状況',state.situation],['行動',state.action]].concat((state.people||[]).flatMap((p,i)=>[[`人物${i+1}の動き`,p.action],[`人物${i+1}の姿勢`,p.posture]]));
   const out=[];
   for(const [where,t] of texts){ const s=clean(t).toLowerCase(); if(!s) continue;
@@ -1310,9 +1410,9 @@ function priorityText(pz){
   return state.posePriority==='scene' ? 'the scene and person texts decide the bodies, hands and gaze; POSE is only a starting point and yields wherever they differ' : 'POSE decides the bodies, hands and gaze; the scene and person texts add place, situation, feeling and props, and where they describe a different posture, POSE wins';
 }
 function renderPoseGuard(){
-  const pz=POSE(); const els=[$('pg-situation'), $('pg-action')].filter(Boolean);
+  const ps=POSES_SEL(); const pz=ps.length?{name:ps.map(p=>p.name).join('・')}:null; const els=[$('pg-situation'), $('pg-action')].filter(Boolean);
   document.querySelectorAll('.pguard-p').forEach(e=>e.remove());
-  if(!pz || pz.group==='frame'){ els.forEach(e=>{ e.hidden=true; e.className='note poseguard'; e.innerHTML=''; }); return; }
+  if(!pz){ els.forEach(e=>{ e.hidden=true; e.className='note poseguard'; e.innerHTML=''; }); return; }
   const conf=poseConflicts(); const yielding=state.posePriority==='scene';
   const base=`ポーズ集で「${esc(pz.name)}」を選んでいます。体の形、手、視線はそちらが決めます。ここには状況・気持ち・場所を書いてください。別の姿勢を書くと競合します。`;
   els.forEach(e=>{ e.hidden=false; const key=e.id==='pg-situation'?'状況':'行動'; const mine=conf.filter(c=>c.where===key);
@@ -1323,7 +1423,7 @@ function renderPoseGuard(){
     n.textContent = mine.length&&!yielding ? `この人物の欄に「${mine[0].word}」の指定があります。ポーズ「${pz.name}」と食い違う可能性があります。` : `ポーズ「${pz.name}」が体の形を決めます。ここには表情や気持ちの動きを。`;
     ta.closest('.field').appendChild(n); });
 }
-document.addEventListener('click', (e)=>{ const b=e.target.closest && e.target.closest('[data-pg]'); if(!b) return; if(b.dataset.pg==='drop'){ state.pose=''; document.querySelectorAll('.pcard').forEach(c=>c.setAttribute('aria-pressed','false')); toast('ポーズを外しました'); } else { state.posePriority='scene'; toast('欄の文を優先します'); } userTouched=true; update(); });
+document.addEventListener('click', (e)=>{ const b=e.target.closest && e.target.closest('[data-pg]'); if(!b) return; if(b.dataset.pg==='drop'){ state.poseSel=[]; syncPoseCards(); toast('ポーズを外しました'); } else { state.posePriority='scene'; toast('欄の文を優先します'); } userTouched=true; update(); });
 function renderReview(){
   const st=state; const rows=[]; const R=(cat,k,v,feeds)=>{ if(v===undefined||v===null||v==='') return; rows.push({cat,k,v:String(v),feeds}); }; const on=(b)=>b?'入':'切'; const trunc=(t,n=60)=>{ t=clean(t); return t.length>n?t.slice(0,n)+'…':t; };
   R('format','比率・サイズ・枚数', `${st.ratio}／${optText('size')}／${st.count}枚${(+st.count||1)>1?'（'+optText('layout')+'）':''}`, '[FORMAT] [OUTPUT]');
@@ -1333,7 +1433,12 @@ function renderReview(){
   R('light','光の一致', `場の光に入れる${on(st.cSceneLight)}／実在光源のみ${on(st.cPractical)}／主光 ${optText('keyPos')}`, '[STYLE] [LIGHT]');
   R('scene','時間帯・場所', `${optText('timeOfDay')}／${optText('place')}${clean(st.placeDetail)?'／'+trunc(st.placeDetail,40):''}`, '[SCENE]');
   R('scene','状況', trunc(st.situation)||'（任せる）', '[SCENE]');
-  { const pz=POSE(); if(pz){ R(pz.group==='frame'?'layout':'scene','ポーズ集', pz.name, pz.group==='frame'?'[FRAMING]':'[POSE]'); R('scene','ポーズと文の優先', st.posePriority==='scene'?'文を優先（ポーズは出発点）':'ポーズが体の形を決める', '[PRIORITY]'); const cf=poseConflicts(); if(cf.length && st.posePriority!=='scene') R('scene','競合の疑い', cf.map(c=>`${c.where}：「${c.word}」`).join('／'), '要確認'); } }
+  { const ps=POSES_SEL(), cs=COMPS_SEL(); const n=NFRAMES(); if(ps.length||cs.length){
+    if(perFrame()){ for(let i=0;i<n;i++){ const pz=poseAt(i), cz=compAt(i); R('scene',`${i+1} 枚目`, [pz?pz.name:'ポーズ指定なし', cz&&cz.name].filter(Boolean).join('／'), `[FRAME ${i+1} …]`); } }
+    else { if(ps[0]) R('scene','ポーズ集', ps[0].name+(n>1?'（全部の枚）':''), ps[0].hands?'[POSE] [HANDS]':'[POSE]'); if(cs[0]) R('layout','構図', cs[0].name+(n>1?'（全部の枚）':''), '[FRAMING]'); }
+    R('scene','ポーズと文の優先', st.posePriority==='scene'?'文を優先（ポーズは出発点）':'ポーズが体の形を決める', '[PRIORITY]');
+    const cf=poseConflicts(); if(cf.length && st.posePriority!=='scene') R('scene','競合の疑い', cf.map(c=>`${c.where}：「${c.word}」`).join('／'), '要確認');
+    const iss=selectionIssues().filter(x=>!/欄の「/.test(x.t)); if(iss.length) R('scene','組み合わせの注意', iss.map(x=>x.t).join('／'), '要確認'); } }
   if(clean(st.action)) R('scene','行動', trunc(st.action), '[ACTION]');
   if(clean(st.moment)) R('scene','瞬間', trunc(st.moment,40), '[MOMENT]');
   if(clean(st.foreground)) R('layout','手前', trunc(st.foreground,40), '[FOREGROUND]');
@@ -1348,7 +1453,7 @@ function renderReview(){
   $('review').innerHTML='<table><tbody>'+rows.map(r=>`<tr><td class="rc"><span class="chip c-${r.cat}"></span>${esc(catJa(r.cat))}</td><td class="rk">${esc(r.k)}</td><td class="rv">${esc(r.v)}</td><td class="rf c-${r.cat}">${esc(r.feeds)}</td></tr>`).join('')+'</tbody></table><p class="note">色は出力の色分けと同じです。最後の列が、その設定が入る行のラベルです。</p>';
 }
 function update(){
-  readUI(); syncVisibility(); renderAnalysis(); renderPoseInfo(); renderSliderLabels();
+  migratePose(); readUI(); syncVisibility(); renderAnalysis(); renderPoseInfo(); renderSliderLabels();
   { const n=Math.max(1,Math.min(8,+state.count||1)); const have=document.querySelectorAll('#frames textarea').length; if((n>1&&have!==n)||(n<=1&&have>0)) renderFrames(); }
   const txt=buildPrompt(); $('output').value=txt; renderPreview(txt); renderReview(); renderPoseGuard(); renderGrid(); renderCurrent();
   const cjk=(txt.match(/[　-鿿豈-﫿＀-￯]/g)||[]).length; const est=Math.round(cjk*1.1+(txt.length-cjk)/4);
@@ -1451,6 +1556,7 @@ $('delSavedBtn').addEventListener('click', ()=>{ const k=$('savedSel').value; if
   const mkSw=(sel, items, label, host)=>{ const g=document.createElement('div'); g.className='sw'; g.setAttribute('role','group'); g.setAttribute('aria-label',label); items.forEach(([v,l],i)=>{ if(i){ const s=document.createElement('span'); s.className='sep'; s.textContent='/'; g.appendChild(s); } const b=document.createElement('button'); b.type='button'; b.dataset.v=v; b.textContent=l; b.addEventListener('click',()=>{ sel.value=v; sel.dispatchEvent(new Event('change',{bubbles:true})); sync(); }); g.appendChild(b); }); const sync=()=>{ g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===sel.value))); }; sel.addEventListener('change', sync); (host||sel.parentElement).appendChild(g); sync(); return sync; };
   mkSw($('viewMode'), [['tabs','タブ'],['list','一覧']], '段の見せ方', $('prefView')); mkSw($('themeMode'), [['light','明るい'],['dark','暗い'],['auto','端末に合わせる']], 'テーマカラー', $('prefTheme'));
   const prefs=$('prefs'); if(prefs){ const openP=()=>{ try{ if(!prefs.open) prefs.showModal(); }catch(e){ prefs.setAttribute('open',''); } }; const closeP=()=>{ try{ prefs.close(); }catch(e){ prefs.removeAttribute('open'); } }; document.querySelectorAll('.prefsOpen').forEach(el=>el.addEventListener('click', openP)); $('prefsClose').addEventListener('click', closeP); prefs.addEventListener('click', (e)=>{ if(e.target===prefs) closeP(); }); }
+  { const pc=$('poseCount'); if(pc) pc.addEventListener('change', ()=>{ const v=Math.max(1,Math.min(8,+pc.value||1)); state.count=v; const c=$('count'); if(c) c.value=v; userTouched=true; renderFrames(); syncPoseCards(); update(); toast(`枚数を ${v} 枚にしました`); }); }
   /* JSON export / import */
   async function saveFile(fn, blob){ let dl=null; try{ if(window.claude && typeof window.claude.use==='function') dl=await window.claude.use('downloads'); }catch(e){ dl=null; }
     if(dl && typeof dl.save==='function'){ try{ const r=await dl.save({filename:fn, data:blob}); if(r && r.status==='saved') toast('書き出しました'); return; }catch(e){ if(e&&e.code==='declined') return; } }
