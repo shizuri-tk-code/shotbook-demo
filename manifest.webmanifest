@@ -1,7 +1,7 @@
 {
  "name": "Shotbook｜デモ版",
  "short_name": "Shotbook",
- "description": "写真の文法で、画像生成のプロンプトを組み立てる補助ツール。色彩フィルター・ポーズ集・光・シーン・人物・カメラを選ぶだけで、画像モデルが読みやすい [LABEL] 形式の英語プロンプトができます。",
+ "description": "写真の文法で、画像生成のプロンプトを組み立てる補助ツール。色彩フィルター・ポーズ集・光・シーン・人物・カメラを選ぶだけで、画像モデルが読みやすい [LABEL] 形式の英語プロンプトができます。 A prompt builder for AI image generation, built on photographic grammar: filters, development effects, poses, light and camera. 日本語 / English / 한국어 / 中文",
  "lang": "ja",
  "start_url": "./",
  "scope": "./",
