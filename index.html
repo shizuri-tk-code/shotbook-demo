@@ -1342,7 +1342,7 @@ const LIGHT_DESC = {
 function lightCardsMount(sel, imgBase, opt){ if(!sel || sel.dataset.cards) return; sel.dataset.cards='1'; const plain=!!(opt&&opt.plain);
   const box=document.createElement('div'); box.className='lightcards'; box.setAttribute('role','radiogroup');
   [...sel.options].forEach(o=>{ const v=o.value; const b=document.createElement('button'); b.type='button'; b.className='lcard'; b.dataset.v=v; b.setAttribute('role','radio');
-    b.innerHTML=`<span class="lc-img"><img alt="" loading="lazy"${v==='preset'?' data-preset="1"':` src="${imgBase}${v}.jpg"`}></span><span class="lc-cap"><span class="lc-nm">${o.textContent}</span><span class="lc-d">${(LIGHT_DESC[v]||['',''])[plain?1:0]}</span></span>`;
+    b.innerHTML=`<span class="lc-img"><img alt="" loading="lazy"${v==='preset'?' data-preset="1"':` src="${imgBase}${v}.jpg?v=2"`}></span><span class="lc-cap"><span class="lc-nm">${o.textContent}</span><span class="lc-d">${(LIGHT_DESC[v]||['',''])[plain?1:0]}</span></span>`;
     b.addEventListener('click', ()=>{ sel.value=v; sel.dispatchEvent(new Event('change', {bubbles:true})); lightCardsSync(); });
     box.appendChild(b); });
   sel.insertAdjacentElement('afterend', box); sel.classList.add('lc-hidden'); sel.addEventListener('change', lightCardsSync);
@@ -1363,7 +1363,7 @@ function ratioChipsSync(){ const sel=RATIOC.sel, box=RATIOC.box; if(!sel || !box
 (function(){
 'use strict';
 const $ = (id)=>document.getElementById(id);
-const APP_VERSION = '配布版 第29版 ／ 2026-11-05 10:08 JST';
+const APP_VERSION = '配布版 第30版 ／ 2026-11-05 10:42 JST';
 document.addEventListener('DOMContentLoaded', ()=>{ const v=$('verMark'); if(v) v.textContent = APP_VERSION; });
 function esc(t){ return String(t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; clearTimeout(toast._t); toast._t=setTimeout(()=>{ t.textContent=''; }, 2600); }
